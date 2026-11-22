@@ -4,7 +4,7 @@
 
 不集成地图 SDK，不申请定位权限，不需要任何地图开发者 Key。装好以后录几个常去的地点，之后每次出发只要点一下，不用再翻高德的收藏夹。
 
-**版本 1.0.4** · Android 6.0+（minSdk 23）· 冷启动 313–367 ms
+**版本 1.0.5** · Android 6.0+（minSdk 23）· 冷启动 313–367 ms
 
 ---
 
@@ -34,6 +34,7 @@
 | 坐标录入 | 直接粘贴「经度,纬度」，中文逗号 / 空格 / 括号都认，顺序反了也能自动识别 |
 | 长按菜单 | 路线规划 / 编辑 / 上移 / 删除，竖排浮层，靠右显示 |
 | 编辑地址 | 长按 →「编辑」，复用添加页并预填原值，保存后原地更新，顺序不变 |
+| 地点类型图标 | 七类矢量图标（小区 / 城镇 / 乡村 / 街道 / 购物 / 餐饮 / 医院），每类专属配色，无需用户挑选 |
 | 导入导出 | JSON 格式，默认写入手机 `Download/秒导航YYMMDD.json`，同一天重复导出自动加序号 |
 | 沉浸式界面 | edge-to-edge，状态栏与手势条全程沉浸 |
 | 在线更新 | GitHub + Gitee 双源检查，24 小时节流，安装前校验版本号 |
@@ -155,7 +156,7 @@
 | 顶部栏不用 `Toolbar`，改 `FrameLayout + TextView + ImageView` | 省掉 ActionBar 与主题属性解析，首帧膨胀 108–114 ms → 92–93 ms |
 | 浮层用 `ViewStub` 按需膨胀 | 绝大多数启动不会打开菜单，不为 `GONE` 的覆盖层付出三个容器的代价 |
 | 列表行压成单层 `LinearLayout` | 9 行少 18 次 measure/layout |
-| 图标 `setImageResource + setColorFilter` | 避免每次绑定都 `mutate()` 打破 Resources 缓存 |
+| 图标 `setImageResource`，彩底白形画在矢量内 | 避免每次绑定都 `mutate()` 打破 Resources 缓存，也不做二次染色 |
 | 精确 `notifyItem*` + `setHasFixedSize(true)` | 增删一行不重绑整表 |
 
 实测（Xiaomi Civi 3，release 构建）：冷启动 **313 / 335 / 367 ms**，`FullyDrawn − Displayed ≤ 16 ms`，首帧即完整内容，没有"先白壳后补内容"。

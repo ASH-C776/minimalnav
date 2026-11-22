@@ -16,9 +16,11 @@ import java.util.Locale;
 /** SharedPreferences + JSON 持久化；零数据库依赖，并提供清单导入导出。 */
 public class AddressStore {
     private static final String PREFS = "minimal_nav";
+    // V3：七类图标（每枚自带底色），iconIndex 0..6；V2 是旧的 6 色 6 图标格式
+    private static final String KEY_V3 = "addresses_v3";
     private static final String KEY_V2 = "addresses_v2";
     private static final String KEY_V1 = "addresses_v1";
-    private static final int EXPORT_VERSION = 3;
+    private static final int EXPORT_VERSION = 4;
 
     private final SharedPreferences prefs;
 
@@ -28,29 +30,33 @@ public class AddressStore {
     }
 
     public List<Address> load() {
-        String json = prefs.getString(KEY_V2, null);
-
-        if (json == null) {
-            // 旧版数据迁移：补齐颜色/图标默认值
-            String legacy = prefs.getString(KEY_V1, null);
-            if (legacy != null) {
-                List<Address> migrated = parse(legacy);
-                save(migrated);
-                return migrated;
-            }
-            // 首次启动示例数据
-            List<Address> seeds = new ArrayList<>();
-            seeds.add(new Address("家", 39.92848272, 116.39560823, "", 0, 0));
-            seeds.add(new Address("公司", 39.98848272, 116.47560823, "", 1, 1));
-            seeds.add(new Address("超市", 39.908860, 116.397390, "", 2, 2));
-            save(seeds);
-            return seeds;
+        String json = prefs.getString(KEY_V3, null);
+        if (json != null) {
+            return parse(json, false);
         }
-        return parse(json);
+
+        // 旧数据一次性迁移：V2（6 色 6 图标）或更早的 V1，按语义映射到新七类
+        String legacy = prefs.getString(KEY_V2, null);
+        if (legacy == null) {
+            legacy = prefs.getString(KEY_V1, null);
+        }
+        if (legacy != null) {
+            List<Address> migrated = parse(legacy, true);
+            save(migrated);
+            return migrated;
+        }
+
+        // 首次启动示例数据
+        List<Address> seeds = new ArrayList<>();
+        seeds.add(new Address("家", 39.92848272, 116.39560823, "", 0, 0));
+        seeds.add(new Address("公司", 39.98848272, 116.47560823, "", 0, 1));
+        seeds.add(new Address("超市", 39.908860, 116.397390, "", 0, 4));
+        save(seeds);
+        return seeds;
     }
 
-    /** 读取本地存储用的裸数组格式。兼容纯 ID 地址（hasCoord=false）。 */
-    private List<Address> parse(String json) {
+    /** 读取裸数组格式。legacy=true 时把旧 6 图标索引映射到新七类。 */
+    private List<Address> parse(String json, boolean legacy) {
         List<Address> list = new ArrayList<>();
         try {
             JSONArray arr = new JSONArray(json);
@@ -64,13 +70,16 @@ public class AddressStore {
                 if (Double.isNaN(lat) && poiId.isEmpty()) {
                     continue;
                 }
+                int rawIcon = clamp(o.optInt("iconIndex", 0), 0, 5);
+                int icon = legacy ? Palette.migrateOldIcon(rawIcon)
+                        : clamp(o.optInt("iconIndex", 0), 0, Palette.COUNT - 1);
                 list.add(new Address(
                         o.optString("name", ""),
                         lat,
                         lon,
                         poiId,
-                        clamp(o.optInt("colorIndex", 0), 0, 5),
-                        clamp(o.optInt("iconIndex", 0), 0, 5)));
+                        0, // 颜色选择已停用
+                        icon));
             }
         } catch (JSONException e) {
             // 数据损坏时返回空列表，不崩溃；用户可重新添加
@@ -87,7 +96,7 @@ public class AddressStore {
                 // 理论上不会发生
             }
         }
-        prefs.edit().putString(KEY_V2, arr.toString()).apply();
+        prefs.edit().putString(KEY_V3, arr.toString()).apply();
     }
 
     // ---------- 导入 / 导出 ----------
@@ -116,11 +125,15 @@ public class AddressStore {
     public static List<Address> importJson(String json) throws JSONException {
         JSONArray arr;
         JSONObject root = new JSONObject(json);
+        boolean legacyIcons;
         if (root.has("addresses")) {
             arr = root.getJSONArray("addresses");
+            // version < 4 的导出使用旧的 6 图标索引
+            legacyIcons = root.optInt("version", 1) < 4;
         } else {
-            // 兼容手工编辑过的旧格式
+            // 裸数组：旧格式，一律按旧索引映射
             arr = new JSONArray(json);
+            legacyIcons = true;
         }
 
         List<Address> list = new ArrayList<>();
@@ -146,13 +159,16 @@ public class AddressStore {
                 continue;
             }
 
+            int rawIcon = clamp(o.optInt("iconIndex", 0), 0, 5);
+            int icon = legacyIcons ? Palette.migrateOldIcon(rawIcon)
+                    : clamp(o.optInt("iconIndex", 0), 0, Palette.COUNT - 1);
             list.add(new Address(
                     name,
                     lat,
                     lon,
                     poiId,
-                    clamp(o.optInt("colorIndex", 0), 0, 5),
-                    clamp(o.optInt("iconIndex", 0), 0, 5)));
+                    0, // 颜色选择已停用
+                    icon));
         }
         return list;
     }

@@ -1,10 +1,9 @@
 package com.example.minimalnav;
 
 /**
- * 地址数据模型。支持两种录入形态：
- *   1) 坐标模式：lat/lon 为 GCJ-02 有效值；
- *   2) POI ID 模式：lat/lon 为 Double.NaN，仅有 poiId，点击时打开高德 POI 详情页。
- * colorIndex / iconIndex 均为 0..5，对应 Palette 中的调色板与图标数组。
+ * 地址数据模型。只保留坐标录入；POI ID 字段留作兼容旧清单。
+ * iconIndex 为 0..6，对应 Palette 的七类图标（每枚自带专属底色）；
+ * colorIndex 已停用，恒为 0，仅为兼容旧数据结构而保留。
  */
 public class Address {
     private String name;

@@ -1,7 +1,6 @@
 package com.example.minimalnav;
 
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.Editable;
@@ -19,7 +18,6 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.graphics.drawable.DrawableCompat;
 
 import java.util.Locale;
 
@@ -48,9 +46,7 @@ public class AddAddressActivity extends AppCompatActivity {
     private EditText etCoord;
     private TextView tvCoordEcho;
 
-    private final View[] colorViews = new View[6];
-    private final ImageView[] iconViews = new ImageView[6];
-    private int selectedColor;
+    private final ImageView[] iconViews = new ImageView[Palette.COUNT];
     private int selectedIcon;
     /** >= 0 表示在编辑已有条目；-1 表示新增。 */
     private int editPosition = -1;
@@ -131,12 +127,11 @@ public class AddAddressActivity extends AppCompatActivity {
         if (!Double.isNaN(lat) && !Double.isNaN(lon)) {
             etCoord.setText(String.format(Locale.US, "%.6f,%.6f", lon, lat));
         }
-        selectedColor = clampIndex(intent.getIntExtra(EXTRA_COLOR, 0));
         selectedIcon = clampIndex(intent.getIntExtra(EXTRA_ICON, 0));
     }
 
     private static int clampIndex(int value) {
-        return value < 0 || value > 5 ? 0 : value;
+        return value < 0 || value >= Palette.COUNT ? 0 : value;
     }
 
     @Override
@@ -166,7 +161,8 @@ public class AddAddressActivity extends AppCompatActivity {
         result.putExtra(EXTRA_LAT, pair[0]);
         result.putExtra(EXTRA_LON, pair[1]);
         result.putExtra(EXTRA_POI, "");
-        result.putExtra(EXTRA_COLOR, selectedColor);
+        // colorIndex 已停用（图标自带专属底色），写 0 仅为兼容旧数据结构
+        result.putExtra(EXTRA_COLOR, 0);
         result.putExtra(EXTRA_ICON, selectedIcon);
         result.putExtra(EXTRA_POSITION, editPosition);
         setResult(RESULT_OK, result);
@@ -174,29 +170,20 @@ public class AddAddressActivity extends AppCompatActivity {
     }
 
     private void buildPickers() {
-        LinearLayout colorRow = findViewById(R.id.colorRow);
         LinearLayout iconRow = findViewById(R.id.iconRow);
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < Palette.COUNT; i++) {
             final int index = i;
-
-            View swatch = new View(this);
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(dp(36), dp(36));
-            cp.setMargins(0, 0, dp(10), 0);
-            swatch.setLayoutParams(cp);
-            swatch.setOnClickListener(v -> {
-                selectedColor = index;
-                refreshPickers();
-            });
-            colorRow.addView(swatch);
-            colorViews[i] = swatch;
-
             ImageView icon = new ImageView(this);
-            LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(36), dp(36));
-            ip.setMargins(0, 0, dp(8), 0);
+            // 外框 42dp、图标 34dp：四周留 4dp，选中描边才露得出来
+            LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(42), dp(42));
+            ip.setMargins(0, 0, dp(2), 0);
             icon.setLayoutParams(ip);
+            icon.setPadding(dp(4), dp(4), dp(4), dp(4));
+            // 图标自带彩底与白形，不再做 tint
             icon.setImageResource(Palette.ICONS[i]);
-            icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            icon.setContentDescription(Palette.ICON_NAMES[i]);
             icon.setOnClickListener(v -> {
                 selectedIcon = index;
                 refreshPickers();
@@ -207,28 +194,15 @@ public class AddAddressActivity extends AppCompatActivity {
         refreshPickers();
     }
 
+    /** 选中态用外框填充 + 描边，图标本身不染色，四周 4dp 留白让选中态一眼可见。 */
     private void refreshPickers() {
-        for (int i = 0; i < 6; i++) {
-            GradientDrawable colorBg = new GradientDrawable();
-            colorBg.setShape(GradientDrawable.OVAL);
-            colorBg.setColor(Palette.COLORS[i]);
-            colorBg.setStroke(i == selectedColor ? dp(3) : dp(1),
-                    i == selectedColor ? 0xFF222222 : 0xFFD3D1C7);
-            colorViews[i].setBackground(colorBg);
-
+        for (int i = 0; i < Palette.COUNT; i++) {
             GradientDrawable iconBg = new GradientDrawable();
-            iconBg.setCornerRadius(dp(8));
+            iconBg.setCornerRadius(dp(12));
             iconBg.setColor(i == selectedIcon ? 0xFFE8F5E9 : 0xFFF1EFE8);
-            iconBg.setStroke(dp(1),
-                    i == selectedIcon ? Palette.COLORS[selectedColor] : 0xFFD3D1C7);
+            iconBg.setStroke(i == selectedIcon ? dp(3) : dp(1),
+                    i == selectedIcon ? 0xFF2E7D32 : 0xFFD3D1C7);
             iconViews[i].setBackground(iconBg);
-
-            Drawable drawable = iconViews[i].getDrawable();
-            if (drawable != null) {
-                drawable = DrawableCompat.wrap(drawable).mutate();
-                DrawableCompat.setTint(drawable, Palette.COLORS[i]);
-                iconViews[i].setImageDrawable(drawable);
-            }
         }
     }
 

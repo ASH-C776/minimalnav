@@ -1,7 +1,6 @@
 package com.example.minimalnav;
 
 import android.content.Context;
-import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -142,10 +141,8 @@ public class AddressAdapter extends RecyclerView.Adapter<AddressAdapter.ViewHold
         final Address address = list.get(position);
         final Context context = holder.itemView.getContext();
 
-        // 用 setImageResource + setColorFilter 代替 getDrawable + wrap().mutate() + setTint：
-        // 前者走 Resources 的 ConstantState 缓存，着色在绘制期完成，不产生新 Drawable 对象。
+        // 图标自带专属底色与白色主体，直接按资源缓存设置，不做二次染色
         holder.ivIcon.setImageResource(Palette.ICONS[address.getIconIndex()]);
-        holder.ivIcon.setColorFilter(Palette.COLORS[address.getColorIndex()], PorterDuff.Mode.SRC_IN);
 
         holder.tvName.setText(address.getName());
 
