@@ -318,8 +318,9 @@ public class AddAddressActivity extends AppCompatActivity {
             tvCoordEcho.setText("认不出来。要「经度,纬度」两个数字，经度 -180~180、纬度 -90~90");
         } else {
             tvCoordEcho.setTextColor(0xFF2E7D32);
+            // 回显顺序与输入框保持一致：经度在前、纬度在后，不对调
             tvCoordEcho.setText(String.format(Locale.US,
-                    "纬度 %.6f · 经度 %.6f", pair[0], pair[1]));
+                    "经度 %.6f · 纬度 %.6f", pair[1], pair[0]));
         }
     }
 

@@ -95,7 +95,7 @@
                     android:maxLines="1"
                     android:singleLine="true" />
 
-                <!-- 识别结果回显：粘贴后立刻看到「纬度 · 经度」，顺序反了能当场发现 -->
+                <!-- 识别结果回显：粘贴后立刻看到「经度 · 纬度」，顺序反了能当场发现 -->
                 <TextView
                     android:id="@+id/tvCoordEcho"
                     android:layout_width="match_parent"
