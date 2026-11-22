@@ -7,7 +7,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -141,9 +140,6 @@ public class AddressAdapter extends RecyclerView.Adapter<AddressAdapter.ViewHold
         final Address address = list.get(position);
         final Context context = holder.itemView.getContext();
 
-        // 图标自带专属底色与白色主体，直接按资源缓存设置，不做二次染色
-        holder.ivIcon.setImageResource(Palette.ICONS[address.getIconIndex()]);
-
         holder.tvName.setText(address.getName());
 
         final View item = holder.itemView;
@@ -189,14 +185,12 @@ public class AddressAdapter extends RecyclerView.Adapter<AddressAdapter.ViewHold
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        final ImageView ivIcon;
         final TextView tvName;
         /** 当前底图是否为聚焦态，避免重复 setBackground 触发无谓的 requestLayout。 */
         boolean backgroundFocused;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
-            ivIcon = itemView.findViewById(R.id.ivIcon);
             tvName = itemView.findViewById(R.id.tvName);
         }
     }

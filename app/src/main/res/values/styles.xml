@@ -18,4 +18,19 @@
         <item name="android:windowLightNavigationBar">true</item>
     </style>
 
+    <!-- 主界面透明浮层：整页背景透明露出桌面壁纸，只显示地址框与底部两按钮。
+         只给 MainActivity 单独指定，AddAddress/About 仍用 AppTheme，不受影响。 -->
+    <style name="Theme.MainTransparent" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#2E7D32</item>
+        <item name="colorPrimaryDark">#1B5E20</item>
+        <item name="colorAccent">#2E7D32</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <!-- 透明窗口关键项：缺了系统仍会补一层不透明底，看不到壁纸 -->
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <!-- 壁纸深浅不定，统一用深色系统栏图标；代码中再叠 30% 白 scrim 保证可辨 -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
 </resources>

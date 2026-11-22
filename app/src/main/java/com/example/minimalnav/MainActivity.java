@@ -67,10 +67,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Edge-to-Edge：顶部栏为深绿色，状态栏区域延伸其背景，故状态栏用浅色图标；
-        // 页面底部为浅灰背景，导航栏用深色图标。图标对比度随实际背景显式指定。
-        EdgeToEdge.enable(this, false, true);
-        EdgeToEdge.top(findViewById(R.id.header), 0);
+        // 透明浮层：壁纸深浅不定，系统栏统一用深色图标；enable 会先把系统栏设为全透明，
+        // 这里再叠一层 30% 白 scrim，保证任意壁纸上图标都可辨（不叠加则深壁纸上会看不见）。
+        EdgeToEdge.enable(this, true, true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            getWindow().setStatusBarColor(0x4DFFFFFF);
+            getWindow().setNavigationBarColor(0x4DFFFFFF);
+        }
 
         store = new AddressStore(this);
         addresses = store.load();
@@ -80,8 +83,8 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setClipToPadding(false);
         // 行高由内容与 minHeight 决定，尺寸对 Adapter 不透明，告诉 RecyclerView 不必反复测量
         recyclerView.setHasFixedSize(true);
-        // 列表底部：保留 88dp 给 FAB，再叠加手势条高度（禁止用 margin 代替 padding）
-        EdgeToEdge.bottom(recyclerView, 88, false);
+        // 顶部让开状态栏/挖孔，底部保留 88dp 给底部按钮条（一次监听，避免上下互相覆盖）
+        EdgeToEdge.topAndBottom(recyclerView, 12, 88, false);
 
         adapter = new AddressAdapter(addresses,
                 this::navigateDirect,      // 单击：直接一键导航
@@ -91,13 +94,14 @@ public class MainActivity extends AppCompatActivity {
         tvEmpty = findViewById(R.id.tvEmpty);
         updateEmpty();
 
-        View fab = findViewById(R.id.btnAdd);
-        EdgeToEdge.bottomMargin(fab, 16);
-        fab.setOnClickListener(v ->
+        // 底部左「＋ 增加地址」、右「设置」，两按钮同一排、贴左右下角
+        View bottomBar = findViewById(R.id.bottomBar);
+        EdgeToEdge.bottomMargin(bottomBar, 16);
+        findViewById(R.id.btnAdd).setOnClickListener(v ->
                 startActivityForResult(new Intent(this, AddAddressActivity.class), REQ_ADD));
 
-        // 工具栏「⋮」：不弹系统 PopupMenu，用与长按菜单同款的圆角浮层
-        findViewById(R.id.btnMore).setOnClickListener(v -> showPopover(
+        // 「设置」：不弹系统 PopupMenu，用与长按菜单同款的圆角浮层
+        findViewById(R.id.btnSettings).setOnClickListener(v -> showPopover(
                 new String[]{"导出清单", "导入清单", "关于"}, true, which -> {
                     if (which == 0) {
                         startExport();
@@ -567,9 +571,9 @@ public class MainActivity extends AppCompatActivity {
      * 统一浮层：圆角磨砂玻璃底 + 竖排纯文字项。走 Activity 内覆盖层而不是系统 PopupMenu，
      * 这样才能自定义圆角、位置与动效，且不会破坏沉浸式导航栏。
      *
-     * @param upperRight true = 贴在工具栏「⋮」按钮左下方；false = 右侧垂直居中偏下
+     * @param fromBottomBar true = 贴在右下「设置」按钮正上方；false = 右侧垂直居中偏下（长按列表项）
      */
-    private void showPopover(String[] labels, boolean upperRight, OnPopoverPick onPick) {
+    private void showPopover(String[] labels, boolean fromBottomBar, OnPopoverPick onPick) {
         ensureSheet();
         if (sheetBody == null) {
             return;
@@ -599,16 +603,24 @@ public class MainActivity extends AppCompatActivity {
         }
 
         FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) sheetBody.getLayoutParams();
-        if (upperRight) {
-            // 「⋮」左下方：右边缘比按钮再收进 12dp，顶部距工具栏 4dp
-            flp.gravity = Gravity.TOP | Gravity.END;
-            flp.topMargin = findViewById(R.id.header).getBottom() + dp(4);
-            flp.rightMargin = dp(12);
+        if (fromBottomBar) {
+            // 右下「设置」正上方：右对齐、距父容器底部 = 按钮底边到父底部 + 8dp
+            View bar = findViewById(R.id.bottomBar);
+            int parentH = ((View) bar.getParent()).getHeight();
+            flp.gravity = Gravity.BOTTOM | Gravity.END;
+            flp.topMargin = 0;
+            flp.bottomMargin = parentH - bar.getTop() + dp(8);
+            // 显式写 start/end：supportsRtl 下 marginEnd 会覆盖物理 rightMargin，
+            // sheet_actions.xml 自带 marginEnd=24dp，这里必须覆盖成 16dp 并清掉 start。
+            flp.setMarginStart(0);
+            flp.setMarginEnd(dp(16));
             sheetBody.setTranslationY(0);
         } else {
             flp.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
             flp.topMargin = 0;
-            flp.rightMargin = dp(24);
+            flp.bottomMargin = 0;
+            flp.setMarginStart(0);
+            flp.setMarginEnd(dp(24));
             sheetBody.setTranslationY(dp(56));
         }
         sheetBody.setLayoutParams(flp);
