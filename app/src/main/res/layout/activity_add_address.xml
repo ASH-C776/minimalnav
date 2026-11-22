@@ -128,7 +128,7 @@
                     android:id="@+id/etCoord"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="113.248456,23.147297"
+                    android:hint="如：113.324076,23.111357"
                     android:inputType="textNoSuggestions"
                     android:maxLines="1"
                     android:singleLine="true" />
@@ -142,14 +142,6 @@
                     android:textColor="#2E7D32"
                     android:textSize="13sp"
                     android:visibility="gone" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="直接粘贴坐标拾取器复制的「经度,纬度」，中文逗号、空格、括号都认\n倒过来粘「纬度,经度」也能自动识别\nlbs.amap.com/tools/picker"
-                    android:textColor="#888888"
-                    android:textSize="12sp" />
 
             </LinearLayout>
 
