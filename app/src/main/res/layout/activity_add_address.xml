@@ -108,10 +108,20 @@
             </LinearLayout>
 
             <TextView
+                android:id="@+id/tvCoordTip"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:text="获取坐标：高德地图pc网页版——坐标拾取工具"
+                android:textColor="#888888"
+                android:textSize="12sp" />
+
+            <TextView
                 android:id="@+id/btnSave"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="18dp"
                 android:layout_marginBottom="24dp"
                 android:background="@drawable/bg_add"
                 android:clickable="true"
