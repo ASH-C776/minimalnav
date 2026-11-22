@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 卡片内可点击行：只画水波纹，不画底色，避免方块边角盖掉卡片圆角 -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#1F1C1C1A">
+    <item android:id="@android:id/mask">
+        <shape android:shape="rectangle">
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+</ripple>

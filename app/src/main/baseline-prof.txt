@@ -1,0 +1,29 @@
+# 秒导航 启动路径 baseline profile（手写，AGP 编译进 APK 的 assets/dexopt/baseline.prof）
+#
+# 作用：Android 12+ 安装时按这份规则做 AOT 编译，冷启动时这些类不用再解释执行/JIT。
+#
+# 格式注意：ART profile 的「类级规则」不允许带 HSP 标记（只有方法级规则才能带），
+# 带了会直接编译失败：Class rules don't support flags。所以这里统一写成 L<class>; 形式。
+#
+# 只列「冷启动到首帧必经」且真实存在于 APK dex 里的类。
+# android.* / org.json 属于系统 boot classpath，不在 APK 的 dex 中，写进来解析不了，一律不列。
+#
+# 维护约定：新增/改名 Activity 或启动路径上的类时同步增补；
+# 一旦打开 minifyEnabled，必须替换为 R8 混淆后的名字。
+
+# ---- 自身代码：Activity 生命周期 → 数据加载 → 列表首帧 ----
+Lcom/example/minimalnav/MainActivity;
+Lcom/example/minimalnav/AddressStore;
+Lcom/example/minimalnav/Address;
+Lcom/example/minimalnav/Palette;
+Lcom/example/minimalnav/EdgeToEdge;
+Lcom/example/minimalnav/AddressAdapter;
+Lcom/example/minimalnav/AddressAdapter$ViewHolder;
+
+# ---- 首帧要跑的库侧热点：列表首屏测量与绘制、Insets 适配 ----
+Landroidx/recyclerview/widget/RecyclerView;
+Landroidx/recyclerview/widget/LinearLayoutManager;
+Landroidx/core/view/ViewCompat;
+Landroidx/core/view/WindowInsetsCompat;
+Landroidx/core/view/WindowInsetsControllerCompat;
+Landroidx/core/view/WindowCompat;

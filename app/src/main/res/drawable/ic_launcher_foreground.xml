@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 秒导航图标前景：白色导航箭头 + 两条速度拖尾。
+     108dp 画布；整体 0.9 缩放在中心 66dp 安全区内，圆形遮罩启动器也不会裁到拖尾。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.9"
+        android:scaleY="0.9">
+
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M25.2,82.9 A37.8,37.8 0 0 1 40.5,91.6"
+            android:strokeAlpha="0.28"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeWidth="3.6" />
+
+        <path
+            android:fillColor="#00000000"
+            android:pathData="M32.4,75.5 A27,27 0 0 1 46.8,86.4"
+            android:strokeAlpha="0.55"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeWidth="3.6" />
+
+        <group
+            android:pivotX="0"
+            android:pivotY="0"
+            android:rotation="40"
+            android:translateX="55.8"
+            android:translateY="50.4">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M0,-26.5 L15.5,23.5 L0,12 L-15.5,23.5 Z" />
+        </group>
+    </group>
+</vector>

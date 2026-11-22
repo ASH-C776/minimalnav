@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider 白名单：只暴露应用私有的 update 目录，别的一概不可见 -->
+<paths>
+    <files-path
+        name="update"
+        path="update/" />
+</paths>

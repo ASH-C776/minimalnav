@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 极简壳：不集成任何地图 SDK，不申请定位权限。
+         导航用显式 Intent 调起高德 App；POI ID 模式用系统浏览器打开高德 Web URI。 -->
+
+    <!-- 在线更新：读 Gitee / GitHub 的公开 Release 列表并下载 APK，必须联网 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 把下载好的 APK 交给系统安装器覆盖安装；Android 8+ 还需用户手动允许「安装未知应用」 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Android 11+ 包可见性：必须声明，否则 resolveActivity 查不到高德 -->
+    <queries>
+        <package android:name="com.autonavi.minimap" />
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".AddAddressActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".AboutActivity"
+            android:exported="false" />
+
+        <!-- 更新包下载在 filesDir/update/，targetSdk 30+ 必须用 content:// 交给安装器 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+</manifest>
