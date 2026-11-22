@@ -396,9 +396,9 @@ public class MainActivity extends AppCompatActivity {
     // ---------- 导航 ----------
 
     private void navigate(Address address, boolean direct) {
-        // 纯 POI ID 地址：无坐标，走高德 Web POI 详情页（callnative=1 优先调起高德 App）
+        // 旧数据里可能有只填了 POI ID 的条目：高德不认 POI ID，只能提示补坐标
         if (!address.hasCoord()) {
-            openPoiDetail(address);
+            showMissingCoordDialog(address);
             return;
         }
         // 坐标地址：需要高德 App
@@ -418,23 +418,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 官方 Web URI：https://uri.amap.com/poidetail?poiid=...&src=...&callnative=1
-     * 只需 POI ID，无需坐标与 Key；callnative=1 在装有高德时调起 App，否则留在浏览器。
+     * 只有 POI ID、没有坐标的旧条目。
+     * 高德没有「按 POI ID 打开详情 / 导航」的 scheme，网页版也只认标准 B0 开头 ID，
+     * 甩给浏览器只会落在地图首页，所以这里只提示用户补坐标。
      */
-    private void openPoiDetail(Address address) {
-        if (TextUtils.isEmpty(address.getPoiId())) {
-            toast("该地址缺少 POI ID，请在长按菜单中编辑补充");
-            return;
-        }
-        String uri = "https://uri.amap.com/poidetail?poiid=" + enc(address.getPoiId())
-                + "&src=" + enc(SOURCE) + "&callnative=1";
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        } catch (ActivityNotFoundException e) {
-            toast("没有可用的浏览器");
-        }
+    private void showMissingCoordDialog(Address address) {
+        new AlertDialog.Builder(this)
+                .setTitle("这条地址缺少坐标")
+                .setMessage("「" + address.getName() + "」只有 POI ID，高德无法直接导航。\n"
+                        + "长按这条地址删除，再用坐标重新添加即可。")
+                .setPositiveButton("知道了", null)
+                .show();
     }
 
     /** 官方：androidamap://navi 直接开始导航，以当前位置为起点。 */
