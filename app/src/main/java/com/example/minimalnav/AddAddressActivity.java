@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.MenuItem;
 import android.view.View;
@@ -18,6 +20,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.drawable.DrawableCompat;
+
+import java.util.Locale;
 
 /** 添加地址页：坐标录入 / POI ID 录入两种模式，均不依赖地图 SDK 或 Key。 */
 public class AddAddressActivity extends AppCompatActivity {
@@ -33,8 +37,8 @@ public class AddAddressActivity extends AppCompatActivity {
     private static final int MODE_POI = 1;
 
     private EditText etName;
-    private EditText etLat;
-    private EditText etLon;
+    private EditText etCoord;
+    private TextView tvCoordEcho;
     private EditText etPoiIdOnly;
     private View coordSection;
     private View poiSection;
@@ -66,8 +70,8 @@ public class AddAddressActivity extends AppCompatActivity {
         }
 
         etName = findViewById(R.id.etName);
-        etLat = findViewById(R.id.etLat);
-        etLon = findViewById(R.id.etLon);
+        etCoord = findViewById(R.id.etCoord);
+        tvCoordEcho = findViewById(R.id.tvCoordEcho);
         etPoiIdOnly = findViewById(R.id.etPoiIdOnly);
         coordSection = findViewById(R.id.coordSection);
         poiSection = findViewById(R.id.poiSection);
@@ -76,6 +80,22 @@ public class AddAddressActivity extends AppCompatActivity {
 
         buildPickers();
         applyMode(MODE_COORD);
+
+        // 边输入边回显识别结果：顺序搞反、少一位、粘错格式都能立刻看见
+        etCoord.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                updateCoordEcho();
+            }
+        });
 
         btnCoord.setOnClickListener(v -> applyMode(MODE_COORD));
         btnPoi.setOnClickListener(v -> applyMode(MODE_POI));
@@ -115,18 +135,13 @@ public class AddAddressActivity extends AppCompatActivity {
         String poi = "";
 
         if (mode == MODE_COORD) {
-            Double parsedLat = parseDouble(etLat.getText().toString());
-            Double parsedLon = parseDouble(etLon.getText().toString());
-            if (parsedLat == null || parsedLat < -90 || parsedLat > 90) {
-                toast("纬度应在 -90 ~ 90 之间");
+            double[] pair = parseCoordPair(etCoord.getText().toString());
+            if (pair == null) {
+                toast("坐标要两个数字，如 113.248456,23.147297");
                 return;
             }
-            if (parsedLon == null || parsedLon < -180 || parsedLon > 180) {
-                toast("经度应在 -180 ~ 180 之间");
-                return;
-            }
-            lat = parsedLat;
-            lon = parsedLon;
+            lat = pair[0];
+            lon = pair[1];
         } else {
             poi = etPoiIdOnly.getText().toString().trim();
             if (TextUtils.isEmpty(poi)) {
@@ -202,6 +217,97 @@ public class AddAddressActivity extends AppCompatActivity {
                 DrawableCompat.setTint(drawable, Palette.COLORS[i]);
                 iconViews[i].setImageDrawable(drawable);
             }
+        }
+    }
+
+    /**
+     * 解析粘贴进来的坐标对，返回 {纬度, 经度}；认不出来返回 null。
+     *
+     * 高德坐标拾取器复制出来是「经度,纬度」（113.248456,23.147297），
+     * 而多数工具与程序内部用的是「纬度,经度」，两个顺序都得收：
+     * 经度最大到 180、纬度最大到 90，谁超过 90 谁就只能是经度，靠这一点判序；
+     * 两个数都不超过 90 时按高德约定「经度在前」。
+     */
+    private static double[] parseCoordPair(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String s = normalizeCoordText(raw);
+        if (s.isEmpty()) {
+            return null;
+        }
+        String[] parts = s.split("[,\\s]+");
+        if (parts.length != 2) {
+            return null;
+        }
+        Double parsedFirst = parseDouble(parts[0]);
+        Double parsedSecond = parseDouble(parts[1]);
+        if (parsedFirst == null || parsedSecond == null) {
+            return null;
+        }
+        double a = parsedFirst;
+        double b = parsedSecond;
+        if (Math.abs(a) > 180 || Math.abs(b) > 180) {
+            return null;
+        }
+        double lat;
+        double lon;
+        if (Math.abs(b) > 90) {
+            // 第二个数超过 90，只可能是经度：粘的是「纬度,经度」
+            lat = a;
+            lon = b;
+        } else {
+            // 高德约定：第一个数是经度
+            lon = a;
+            lat = b;
+        }
+        if (Math.abs(lat) > 90) {
+            return null;
+        }
+        return new double[]{lat, lon};
+    }
+
+    /** 统一全角字符与分隔符，丢掉括号等噪声，让手粘的坐标尽量能认出来。 */
+    private static String normalizeCoordText(String raw) {
+        StringBuilder sb = new StringBuilder(raw.length());
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if (c >= '０' && c <= '９') {
+                c = (char) (c - '０' + '0');
+            } else if (c == '．' || c == '。') {
+                c = '.';
+            } else if (c == '，' || c == '、' || c == '；' || c == ';') {
+                c = ',';
+            } else if (c == '－' || c == '—' || c == '−') {
+                c = '-';
+            } else if (c == '＋') {
+                c = '+';
+            } else if (c == '（' || c == '）' || c == '(' || c == ')'
+                    || c == '[' || c == ']' || c == '【' || c == '】') {
+                continue;
+            } else if (c == '\u3000' || c == '\t' || c == '\n' || c == '\r') {
+                c = ' ';
+            }
+            sb.append(c);
+        }
+        return sb.toString().trim();
+    }
+
+    private void updateCoordEcho() {
+        String raw = etCoord.getText().toString().trim();
+        if (raw.isEmpty()) {
+            tvCoordEcho.setVisibility(View.GONE);
+            return;
+        }
+        tvCoordEcho.setVisibility(View.VISIBLE);
+        double[] pair = parseCoordPair(raw);
+        if (pair == null) {
+            tvCoordEcho.setTextColor(0xFFD32F2F);
+            tvCoordEcho.setText("认不出来。要「经度,纬度」两个数字，经度 -180~180、纬度 -90~90");
+        } else {
+            tvCoordEcho.setTextColor(0xFF2E7D32);
+            tvCoordEcho.setText(String.format(Locale.US,
+                    "纬度 %.6f · 经度 %.6f", pair[0], pair[1]));
         }
     }
 

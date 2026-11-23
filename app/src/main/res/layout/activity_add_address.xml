@@ -120,39 +120,34 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="纬度"
+                    android:text="坐标（经度,纬度）"
                     android:textColor="#333333"
                     android:textSize="14sp" />
 
                 <EditText
-                    android:id="@+id/etLat"
+                    android:id="@+id/etCoord"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="39.92848272"
-                    android:inputType="numberDecimal|numberSigned"
-                    android:maxLines="1" />
+                    android:hint="113.248456,23.147297"
+                    android:inputType="textNoSuggestions"
+                    android:maxLines="1"
+                    android:singleLine="true" />
+
+                <!-- 识别结果回显：粘贴后立刻看到「纬度 · 经度」，顺序反了能当场发现 -->
+                <TextView
+                    android:id="@+id/tvCoordEcho"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="#2E7D32"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:text="经度"
-                    android:textColor="#333333"
-                    android:textSize="14sp" />
-
-                <EditText
-                    android:id="@+id/etLon"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="116.39560823"
-                    android:inputType="numberDecimal|numberSigned"
-                    android:maxLines="1" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:text="获取坐标：高德坐标拾取器\nlbs.amap.com/tools/picker"
+                    android:text="直接粘贴坐标拾取器复制的「经度,纬度」，中文逗号、空格、括号都认\n倒过来粘「纬度,经度」也能自动识别\nlbs.amap.com/tools/picker"
                     android:textColor="#888888"
                     android:textSize="12sp" />
 
