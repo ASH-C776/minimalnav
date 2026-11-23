@@ -97,6 +97,11 @@ public class AddAddressActivity extends AppCompatActivity {
             }
         });
 
+        // 光标一进输入框就把提示语收走，避免和用户粘进来的坐标叠在一起
+        final CharSequence coordHint = etCoord.getHint();
+        etCoord.setOnFocusChangeListener((v, hasFocus) ->
+                etCoord.setHint(hasFocus ? "" : coordHint));
+
         btnCoord.setOnClickListener(v -> applyMode(MODE_COORD));
         btnPoi.setOnClickListener(v -> applyMode(MODE_POI));
         findViewById(R.id.btnSave).setOnClickListener(v -> saveAndFinish());
