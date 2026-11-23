@@ -32,7 +32,6 @@
 |---|---|
 | 一键驾车导航 | 单击清单任意一条，直接调起高德开始导航，不弹菜单、不二次确认 |
 | 坐标录入 | 直接粘贴「经度,纬度」，中文逗号 / 空格 / 括号都认，顺序反了也能自动识别 |
-| POI ID 录入 | 只填高德 POI ID，点击时打开高德 POI 详情页再导航 |
 | 长按菜单 | 路线规划 / 上移 / 删除，竖排浮层，靠右显示 |
 | 导入导出 | JSON 格式，默认写入手机 `Download/秒导航YYMMDD.json`，同一天重复导出自动加序号 |
 | 沉浸式界面 | edge-to-edge，状态栏与手势条全程沉浸 |
@@ -51,9 +50,7 @@
 
 ## 怎么录入一个地点
 
-秒导航不做搜索，所以录入前需要你先从高德拿到坐标或 POI ID。两种方式任选其一。
-
-**坐标方式**（推荐，点击后一步直达导航）
+秒导航不做搜索，所以录入前需要你从高德拿到一个坐标。
 
 最快的一步：打开高德官方坐标拾取器 `lbs.amap.com/tools/picker`，搜地点或点地图 → 点「复制」→ 回到秒导航，直接粘进坐标框。
 
@@ -65,11 +62,7 @@
 
 也可以从分享链接里取：在高德地图长按目标位置 → 底部出现"选定地点"→ 点进详情 → 分享 → 复制链接，链接里的 `position=经度,纬度` 就是那一对数字（同样经度在前）。
 
-**POI ID 方式**（适合只知道地点、懒得取坐标）
-
-在高德里搜到目标地点 → 进入详情页 → 分享 → 复制链接，链接里 `?picid=` 或 `poiid=` 后面那串字母数字就是 POI ID。
-
-两个信息都只能从高德自己的分享链接里取，秒导航不做任何抓取，也不联网查询。
+坐标只能从高德自己的分享链接或拾取器里取，秒导航不做任何抓取，也不联网查询。
 
 ---
 
@@ -83,7 +76,6 @@
 |---|---|
 | 开始驾车导航 | `androidamap://navi?lat=&lon=&poiname=&dev=0&style=2` |
 | 路线规划页 | `amapuri://route/plan/?dlat=&dlon=&dev=0&t=0` |
-| POI 详情页 | `https://uri.amap.com/poidetail?poiid=&callnative=1` |
 
 这么做换来三个结果：
 
@@ -92,6 +84,21 @@
 3. **包体只有 3.5 MB。** 没有 SDK 就没有 amap 的 so 库和资源。
 
 代价是导航界面完全由高德决定，秒导航无法定制路线偏好、无法显示实时路况。这是刻意的取舍——这些事高德做得比自己好。
+
+### 为什么不做「POI ID 录入」
+
+早期版本提供过一种只填高德 POI ID 的录入方式，点击时打开 `uri.amap.com/poidetail` 网页让高德自己去认。实测下来这条路走不通，已经移除：
+
+| 尝试 | 实际结果 |
+|---|---|
+| `https://uri.amap.com/poidetail?poiid=` 指定高德包名 | 高德没有注册这个域名，压根唤不起来 |
+| 同上，不指定包名 | 系统交给浏览器，落到 Web 地图首页；实测已无效 |
+| `amapuri://poi?poiid=`、`androidamap://poi?poiid=` | 两个参数都不认，被当成搜索词，显示「未找到信息」 |
+| `amapuri://route/plan/?did=` 只给 POI ID | 高德直接退出，不接受 |
+
+原因很简单：**高德 App 只接受坐标，没有「按 POI ID 打开详情 / 导航」的入口**；网页版虽然能认 ID，但 `callnative=1` 只是网页上的一个「打开高德 APP」按钮，不会自动跳转。而且网页只认 `B0` 开头的标准 ID，拿到一个不规范的 ID 就只剩一张空白地图。
+
+所以现在只保留坐标一种录入方式——多粘一次坐标，换来的是一点就进导航。旧数据里若还有只有 POI ID 的条目，点击时会提示补坐标，不再甩去浏览器。
 
 ### 快在哪：跳过的是高德首页的一整套 UI
 
@@ -128,7 +135,7 @@
    "poiId": "", "colorIndex": 1, "iconIndex": 1 }]
 ```
 
-纯 POI ID 条目的 `lat` / `lon` 存 `NaN`，`hasCoord=false`，点击时走 POI 详情页分支。导出格式带 `app` / `version` / `exportedAt` 字段，导入时兼容旧版裸数组，并逐条校验——单条数据坏了不会让整次导入失败。
+导出格式带 `app` / `version` / `exportedAt` 字段，导入时兼容旧版裸数组，并逐条校验——单条数据坏了不会让整次导入失败。`poiId` 字段保留下来，一是让带 ID 的条目跳转时能带上 `poiid` 参数，二是兼容旧版导出的清单。
 
 ### 在线更新：双源 + 节流 + 安装前校验
 
@@ -183,7 +190,7 @@ MinimalNav/
 ├── app/src/main/
 │   ├── java/com/example/minimalnav/
 │   │   ├── MainActivity.java          — Main screen: list, popover overlay, import/export, update entry point.
-│   │   ├── AddAddressActivity.java    — Add-address screen with coordinate and POI ID input modes.
+│   │   ├── AddAddressActivity.java    — Add-address screen: paste a coordinate pair, pick color and icon.
 │   │   ├── AboutActivity.java         — About screen: version, update check, GitHub link.
 │   │   ├── Address.java               — Data model for one saved place.
 │   │   ├── AddressStore.java          — Persistence and JSON import/export logic.

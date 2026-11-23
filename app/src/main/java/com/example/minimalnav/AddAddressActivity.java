@@ -23,28 +23,25 @@ import androidx.core.graphics.drawable.DrawableCompat;
 
 import java.util.Locale;
 
-/** 添加地址页：坐标录入 / POI ID 录入两种模式，均不依赖地图 SDK 或 Key。 */
+/**
+ * 添加地址页：只需要「坐标」一项。
+ *
+ * 不做 POI ID 录入——高德 App 没有「按 POI ID 打开详情 / 导航」的入口，
+ * 只填 ID 的条目点击时只能落到浏览器网页，体验比多粘一次坐标更差。
+ */
 public class AddAddressActivity extends AppCompatActivity {
 
     public static final String EXTRA_NAME = "name";
     public static final String EXTRA_LAT = "lat";
     public static final String EXTRA_LON = "lon";
+    /** 保留仅用于兼容旧调用方；新版录入不再产生 POI ID。 */
     public static final String EXTRA_POI = "poiId";
     public static final String EXTRA_COLOR = "colorIndex";
     public static final String EXTRA_ICON = "iconIndex";
 
-    private static final int MODE_COORD = 0;
-    private static final int MODE_POI = 1;
-
     private EditText etName;
     private EditText etCoord;
     private TextView tvCoordEcho;
-    private EditText etPoiIdOnly;
-    private View coordSection;
-    private View poiSection;
-    private TextView btnCoord;
-    private TextView btnPoi;
-    private int mode = MODE_COORD;
 
     private final View[] colorViews = new View[6];
     private final ImageView[] iconViews = new ImageView[6];
@@ -72,14 +69,8 @@ public class AddAddressActivity extends AppCompatActivity {
         etName = findViewById(R.id.etName);
         etCoord = findViewById(R.id.etCoord);
         tvCoordEcho = findViewById(R.id.tvCoordEcho);
-        etPoiIdOnly = findViewById(R.id.etPoiIdOnly);
-        coordSection = findViewById(R.id.coordSection);
-        poiSection = findViewById(R.id.poiSection);
-        btnCoord = findViewById(R.id.btnCoord);
-        btnPoi = findViewById(R.id.btnPoi);
 
         buildPickers();
-        applyMode(MODE_COORD);
 
         // 边输入边回显识别结果：顺序搞反、少一位、粘错格式都能立刻看见
         etCoord.addTextChangedListener(new TextWatcher() {
@@ -102,8 +93,6 @@ public class AddAddressActivity extends AppCompatActivity {
         etCoord.setOnFocusChangeListener((v, hasFocus) ->
                 etCoord.setHint(hasFocus ? "" : coordHint));
 
-        btnCoord.setOnClickListener(v -> applyMode(MODE_COORD));
-        btnPoi.setOnClickListener(v -> applyMode(MODE_POI));
         findViewById(R.id.btnSave).setOnClickListener(v -> saveAndFinish());
     }
 
@@ -116,18 +105,6 @@ public class AddAddressActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void applyMode(int newMode) {
-        mode = newMode;
-        boolean coord = mode == MODE_COORD;
-        coordSection.setVisibility(coord ? View.VISIBLE : View.GONE);
-        poiSection.setVisibility(coord ? View.GONE : View.VISIBLE);
-
-        btnCoord.setBackgroundResource(coord ? R.drawable.bg_add : R.drawable.bg_card);
-        btnCoord.setTextColor(coord ? 0xFFFFFFFF : 0xFF2E7D32);
-        btnPoi.setBackgroundResource(coord ? R.drawable.bg_card : R.drawable.bg_add);
-        btnPoi.setTextColor(coord ? 0xFF2E7D32 : 0xFFFFFFFF);
-    }
-
     private void saveAndFinish() {
         String name = etName.getText().toString().trim();
         if (TextUtils.isEmpty(name)) {
@@ -135,31 +112,17 @@ public class AddAddressActivity extends AppCompatActivity {
             return;
         }
 
-        double lat = Double.NaN;
-        double lon = Double.NaN;
-        String poi = "";
-
-        if (mode == MODE_COORD) {
-            double[] pair = parseCoordPair(etCoord.getText().toString());
-            if (pair == null) {
-                toast("坐标要两个数字，如 113.248456,23.147297");
-                return;
-            }
-            lat = pair[0];
-            lon = pair[1];
-        } else {
-            poi = etPoiIdOnly.getText().toString().trim();
-            if (TextUtils.isEmpty(poi)) {
-                toast("请输入 POI ID");
-                return;
-            }
+        double[] pair = parseCoordPair(etCoord.getText().toString());
+        if (pair == null) {
+            toast("坐标要两个数字，如 113.324076,23.111357");
+            return;
         }
 
         Intent result = new Intent();
         result.putExtra(EXTRA_NAME, name);
-        result.putExtra(EXTRA_LAT, lat);
-        result.putExtra(EXTRA_LON, lon);
-        result.putExtra(EXTRA_POI, poi);
+        result.putExtra(EXTRA_LAT, pair[0]);
+        result.putExtra(EXTRA_LON, pair[1]);
+        result.putExtra(EXTRA_POI, "");
         result.putExtra(EXTRA_COLOR, selectedColor);
         result.putExtra(EXTRA_ICON, selectedIcon);
         setResult(RESULT_OK, result);
@@ -228,7 +191,7 @@ public class AddAddressActivity extends AppCompatActivity {
     /**
      * 解析粘贴进来的坐标对，返回 {纬度, 经度}；认不出来返回 null。
      *
-     * 高德坐标拾取器复制出来是「经度,纬度」（113.248456,23.147297），
+     * 高德坐标拾取器复制出来是「经度,纬度」（113.324076,23.111357），
      * 而多数工具与程序内部用的是「纬度,经度」，两个顺序都得收：
      * 经度最大到 180、纬度最大到 90，谁超过 90 谁就只能是经度，靠这一点判序；
      * 两个数都不超过 90 时按高德约定「经度在前」。
