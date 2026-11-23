@@ -1,54 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_glass_page">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
-
-        <!--
-          顶部栏不用 androidx Toolbar：本页只需要「一个标题 + 一个图标按钮」，
-          Toolbar 会带来 ActionBar 支持、menu 体系与大量主题属性解析，冷启动膨胀约 40–60ms。
-          换成纯 FrameLayout + TextView + ImageView 后视觉一致、层级更浅。
-        -->
-        <!--
-          高度必须是 wrap_content + minHeight，不能写死 56dp：
-          EdgeToEdge.top() 会给这个容器加「状态栏高度」的 paddingTop，
-          写死高度会让内容区被压到 28dp 左右，标题直接被裁一半。
-          这样写等价于原来 Toolbar 的行为（56dp + 状态栏 padding 叠加）。
-        -->
-        <FrameLayout
-            android:id="@+id/header"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="#2E7D32"
-            android:minHeight="56dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_gravity="start|center_vertical"
-                android:layout_marginStart="16dp"
-                android:gravity="center_vertical"
-                android:text="@string/app_name"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp" />
-
-            <ImageView
-                android:id="@+id/btnMore"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="end|center_vertical"
-                android:layout_marginEnd="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="更多"
-                android:padding="12dp"
-                android:src="@drawable/ic_more" />
-
-        </FrameLayout>
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -67,28 +25,64 @@
 
             <TextView
                 android:id="@+id/tvEmpty"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
+                android:background="@drawable/bg_glass_button"
                 android:gravity="center"
-                android:text="还没有地址\n点右下角 + 添加"
-                android:textColor="#999999"
+                android:padding="16dp"
+                android:text="还没有地址\n点左下角「＋ 增加地址」添加"
+                android:textColor="#1C1C1A"
                 android:textSize="16sp"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/btnAdd"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
-                android:layout_gravity="bottom|end"
-                android:layout_margin="16dp"
-                android:background="@drawable/bg_add"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center"
-                android:text="+"
-                android:textColor="#FFFFFF"
-                android:textSize="30sp" />
+            <LinearLayout
+                android:id="@+id/bottomBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:orientation="horizontal"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp">
+
+                <TextView
+                    android:id="@+id/btnAdd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_glass_button"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:singleLine="true"
+                    android:text="＋ 增加地址"
+                    android:textColor="#1C1C1A"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/btnSettings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_glass_button"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:singleLine="true"
+                    android:text="设置"
+                    android:textColor="#1C1C1A"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
 
         </FrameLayout>
 
@@ -96,7 +90,7 @@
 
     <!--
       浮层按需膨胀：绝大多数冷启动用户不会打开菜单，没必要为一个隐藏的覆盖层
-      付出 3 个容器的膨胀与 drawable 解析成本。首次点「⋮」或长按时才 inflate。
+      付出 3 个容器的膨胀与 drawable 解析成本。首次点「设置」或长按时才 inflate。
     -->
     <ViewStub
         android:id="@+id/sheetStub"

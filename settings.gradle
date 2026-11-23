@@ -7,7 +7,9 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    // 兼容全局 init.d 镜像脚本注入的仓库：PREFER_SETTINGS 以 settings 仓库为准，
+    // 同时允许 init 脚本补充仓库，避免 Gradle 9.x 的 FAIL_ON_PROJECT_REPOS 冲突报错。
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
     repositories {
         google()
         mavenCentral()

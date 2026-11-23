@@ -88,6 +88,27 @@ public final class EdgeToEdge {
     }
 
     /**
+     * 同时避让顶部与底部：一个 View 只能挂一个 Insets 监听，top()+bottom() 会互相覆盖，
+     * 列表这类上下都要留白的场景必须用这个方法一次算完。
+     *
+     * @param topBaseDp    原有顶部内边距（dp）
+     * @param bottomBaseDp 原有底部内边距（dp）
+     * @param includeIme   是否叠加键盘高度
+     */
+    public static void topAndBottom(View view, int topBaseDp, int bottomBaseDp,
+                                    boolean includeIme) {
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            int bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+            int cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top;
+            int nav = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+            int ime = includeIme ? insets.getInsets(WindowInsetsCompat.Type.ime()).bottom : 0;
+            v.setPadding(v.getPaddingLeft(), Math.max(bars, cutout) + dp(v, topBaseDp),
+                    v.getPaddingRight(), Math.max(nav, ime) + dp(v, bottomBaseDp));
+            return insets;
+        });
+    }
+
+    /**
      * 底部避让：取 navigationBars.bottom 与 ime.bottom 的较大值（三键导航为 0 也不写死像素）。
      *
      * @param basePaddingDp 原有底部内边距（dp）
