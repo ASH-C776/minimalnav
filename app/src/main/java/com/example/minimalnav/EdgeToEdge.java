@@ -125,6 +125,19 @@ public final class EdgeToEdge {
         });
     }
 
+    /** 顶部控件避让：marginTop = 原值 + statusBars/cutout，不压状态栏或挖孔。 */
+    public static void topMargin(View view, int baseMarginDp) {
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            int bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+            int cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top;
+            ViewGroup.MarginLayoutParams lp =
+                    (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            lp.topMargin = Math.max(bars, cutout) + dp(v, baseMarginDp);
+            v.setLayoutParams(lp);
+            return insets;
+        });
+    }
+
     /** 悬浮按钮避让：marginBottom = 原值 + navigationBars.bottom，不贴手势条。 */
     public static void bottomMargin(View view, int baseMarginDp) {
         ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {

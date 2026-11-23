@@ -1,17 +1,13 @@
 package com.example.minimalnav;
 
 import android.content.Intent;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.util.TypedValue;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,8 +42,6 @@ public class AddAddressActivity extends AppCompatActivity {
     private EditText etCoord;
     private TextView tvCoordEcho;
 
-    private final ImageView[] iconViews = new ImageView[Palette.COUNT];
-    private int selectedIcon;
     /** >= 0 表示在编辑已有条目；-1 表示新增。 */
     private int editPosition = -1;
 
@@ -82,8 +76,6 @@ public class AddAddressActivity extends AppCompatActivity {
             ((TextView) findViewById(R.id.btnSave)).setText("保存修改");
             prefillFromIntent();
         }
-
-        buildPickers();
 
         // 边输入边回显识别结果：顺序搞反、少一位、粘错格式都能立刻看见
         etCoord.addTextChangedListener(new TextWatcher() {
@@ -127,11 +119,6 @@ public class AddAddressActivity extends AppCompatActivity {
         if (!Double.isNaN(lat) && !Double.isNaN(lon)) {
             etCoord.setText(String.format(Locale.US, "%.6f,%.6f", lon, lat));
         }
-        selectedIcon = clampIndex(intent.getIntExtra(EXTRA_ICON, 0));
-    }
-
-    private static int clampIndex(int value) {
-        return value < 0 || value >= Palette.COUNT ? 0 : value;
     }
 
     @Override
@@ -161,49 +148,12 @@ public class AddAddressActivity extends AppCompatActivity {
         result.putExtra(EXTRA_LAT, pair[0]);
         result.putExtra(EXTRA_LON, pair[1]);
         result.putExtra(EXTRA_POI, "");
-        // colorIndex 已停用（图标自带专属底色），写 0 仅为兼容旧数据结构
+        // colorIndex / iconIndex 均已停用（列表不显示图标），写 0 仅为兼容旧数据结构
         result.putExtra(EXTRA_COLOR, 0);
-        result.putExtra(EXTRA_ICON, selectedIcon);
+        result.putExtra(EXTRA_ICON, 0);
         result.putExtra(EXTRA_POSITION, editPosition);
         setResult(RESULT_OK, result);
         finish();
-    }
-
-    private void buildPickers() {
-        LinearLayout iconRow = findViewById(R.id.iconRow);
-
-        for (int i = 0; i < Palette.COUNT; i++) {
-            final int index = i;
-            ImageView icon = new ImageView(this);
-            // 外框 42dp、图标 34dp：四周留 4dp，选中描边才露得出来
-            LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(dp(42), dp(42));
-            ip.setMargins(0, 0, dp(2), 0);
-            icon.setLayoutParams(ip);
-            icon.setPadding(dp(4), dp(4), dp(4), dp(4));
-            // 图标自带彩底与白形，不再做 tint
-            icon.setImageResource(Palette.ICONS[i]);
-            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            icon.setContentDescription(Palette.ICON_NAMES[i]);
-            icon.setOnClickListener(v -> {
-                selectedIcon = index;
-                refreshPickers();
-            });
-            iconRow.addView(icon);
-            iconViews[i] = icon;
-        }
-        refreshPickers();
-    }
-
-    /** 选中态用外框填充 + 描边，图标本身不染色，四周 4dp 留白让选中态一眼可见。 */
-    private void refreshPickers() {
-        for (int i = 0; i < Palette.COUNT; i++) {
-            GradientDrawable iconBg = new GradientDrawable();
-            iconBg.setCornerRadius(dp(12));
-            iconBg.setColor(i == selectedIcon ? 0xFFE8F5E9 : 0xFFF1EFE8);
-            iconBg.setStroke(i == selectedIcon ? dp(3) : dp(1),
-                    i == selectedIcon ? 0xFF2E7D32 : 0xFFD3D1C7);
-            iconViews[i].setBackground(iconBg);
-        }
     }
 
     /**
@@ -304,11 +254,6 @@ public class AddAddressActivity extends AppCompatActivity {
         } catch (Exception e) {
             return null;
         }
-    }
-
-    private int dp(int value) {
-        return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
-                value, getResources().getDisplayMetrics());
     }
 
     private void toast(String message) {

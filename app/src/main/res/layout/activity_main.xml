@@ -3,25 +3,74 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!--
+      右上角两枚纯图标按钮：从左到右「＋ 增加地址」「设置」。
+      贴在右上角，与居中的地址列表互不遮挡；顶部避让在代码中按状态栏设置 margin。
+    -->
     <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginEnd="16dp"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/btnAdd"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_glass_card"
+            android:clickable="true"
+            android:contentDescription="增加地址"
+            android:focusable="true"
+            android:padding="14dp"
+            android:src="@drawable/ic_add" />
+
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="match_parent" />
+
+        <ImageView
+            android:id="@+id/btnSettings"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_glass_card"
+            android:clickable="true"
+            android:contentDescription="设置"
+            android:focusable="true"
+            android:padding="14dp"
+            android:src="@drawable/ic_settings" />
+
+    </LinearLayout>
+
+    <!--
+      地址列表整体居中：上下 Space 各占一份权重，把中间的 listColumn 顶到屏幕正中。
+      内容超高时 Space 自动收缩为 0，列表占满可用高度，不越界。
+    -->
+    <LinearLayout
+        android:id="@+id/centerWrap"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <FrameLayout
+        <Space
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_weight="1" />
+
+        <FrameLayout
+            android:id="@+id/listColumn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/recyclerView"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:clipToPadding="false"
-                android:paddingStart="16dp"
-                android:paddingTop="12dp"
-                android:paddingEnd="16dp"
-                android:paddingBottom="88dp" />
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp" />
 
             <TextView
                 android:id="@+id/tvEmpty"
@@ -31,60 +80,17 @@
                 android:background="@drawable/bg_glass_button"
                 android:gravity="center"
                 android:padding="16dp"
-                android:text="还没有地址\n点左下角「＋ 增加地址」添加"
+                android:text="还没有地址\n点右上角 ＋ 添加"
                 android:textColor="#1C1C1A"
                 android:textSize="16sp"
                 android:visibility="gone" />
 
-            <LinearLayout
-                android:id="@+id/bottomBar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom"
-                android:orientation="horizontal"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp">
-
-                <TextView
-                    android:id="@+id/btnAdd"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_glass_button"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center"
-                    android:paddingStart="18dp"
-                    android:paddingEnd="18dp"
-                    android:singleLine="true"
-                    android:text="＋ 增加地址"
-                    android:textColor="#1C1C1A"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <Space
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1" />
-
-                <TextView
-                    android:id="@+id/btnSettings"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_glass_button"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:gravity="center"
-                    android:paddingStart="18dp"
-                    android:paddingEnd="18dp"
-                    android:singleLine="true"
-                    android:text="设置"
-                    android:textColor="#1C1C1A"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-            </LinearLayout>
-
         </FrameLayout>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
     </LinearLayout>
 

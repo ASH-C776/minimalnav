@@ -4,6 +4,8 @@ import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,6 +18,7 @@ import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -61,14 +64,15 @@ public class MainActivity extends AppCompatActivity {
     private TextView tvEmpty;
     private View sheetOverlay;
     private View sheetBody;
+    private View listColumn;
+    private View topBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 透明浮层：壁纸深浅不定，系统栏统一用深色图标；enable 会先把系统栏设为全透明，
-        // 这里再叠一层 30% 白 scrim，保证任意壁纸上图标都可辨（不叠加则深壁纸上会看不见）。
+        // 透明浮层：壁纸深浅不定，系统栏统一用深色图标 + 30% 白 scrim 保证可辨。
         EdgeToEdge.enable(this, true, true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             getWindow().setStatusBarColor(0x4DFFFFFF);
@@ -79,24 +83,32 @@ public class MainActivity extends AppCompatActivity {
         addresses = store.load();
 
         RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        // 整体居中：正常从上往下排，列表高度随内容，由 centerWrap 的上下 Space 顶到屏幕正中
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setClipToPadding(false);
         // 行高由内容与 minHeight 决定，尺寸对 Adapter 不透明，告诉 RecyclerView 不必反复测量
         recyclerView.setHasFixedSize(true);
-        // 顶部让开状态栏/挖孔，底部保留 88dp 给底部按钮条（一次监听，避免上下互相覆盖）
-        EdgeToEdge.topAndBottom(recyclerView, 12, 88, false);
+        // 居中容器整体避开状态栏/挖孔与手势条（一次监听）
+        EdgeToEdge.topAndBottom(findViewById(R.id.centerWrap), 8, 8, false);
 
         adapter = new AddressAdapter(addresses,
                 this::navigateDirect,      // 单击：直接一键导航
                 this::showActionSheet);    // 长按：路线 / 上移 / 编辑 / 删除
+        // 首屏逐行入场：非空时先标记，绑定阶段会把条目预置到隐藏态
+        if (!addresses.isEmpty()) {
+            adapter.prepareEnterAnimation();
+        }
         recyclerView.setAdapter(adapter);
 
         tvEmpty = findViewById(R.id.tvEmpty);
+        listColumn = findViewById(R.id.listColumn);
+        topBar = findViewById(R.id.topBar);
+        // 地址列宽度 = 最长备注所需宽度，整体居中
+        applyColumnWidth();
         updateEmpty();
 
-        // 底部左「＋ 增加地址」、右「设置」，两按钮同一排、贴左右下角
-        View bottomBar = findViewById(R.id.bottomBar);
-        EdgeToEdge.bottomMargin(bottomBar, 16);
+        // 右上角两枚图标按钮：左「＋ 增加地址」、右「设置」，避开状态栏
+        EdgeToEdge.topMargin(topBar, 8);
         findViewById(R.id.btnAdd).setOnClickListener(v ->
                 startActivityForResult(new Intent(this, AddAddressActivity.class), REQ_ADD));
 
@@ -111,6 +123,23 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(new Intent(this, AboutActivity.class));
                     }
                 }));
+
+        // 首屏动画：等第一帧布局完成（条目已 attach）再逐条弹出，不阻塞首帧绘制。
+        // 用 pre-draw 而非直接 post，确保拿到已绑定的 child，避免动画丢失。
+        final RecyclerView rvForAnim = recyclerView;
+        recyclerView.getViewTreeObserver().addOnPreDrawListener(
+                new android.view.ViewTreeObserver.OnPreDrawListener() {
+                    @Override
+                    public boolean onPreDraw() {
+                        // child 尚未 attach 时跳过，等下一帧；避免动画在空布局上被消费掉
+                        if (rvForAnim.getChildCount() == 0) {
+                            return true;
+                        }
+                        rvForAnim.getViewTreeObserver().removeOnPreDrawListener(this);
+                        adapter.playEnterAnimation(rvForAnim);
+                        return true;
+                    }
+                });
 
         // 冷启动可观测：列表绑定完成即上报 fully drawn，便于用 adb 量化首屏耗时
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -173,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
             addresses.add(added);
             store.save(addresses);
             adapter.notifyItemInserted(addresses.size() - 1);
+            applyColumnWidth();
             updateEmpty();
             toast("已添加地址");
             return;
@@ -231,6 +261,7 @@ public class MainActivity extends AppCompatActivity {
         target.setIconIndex(data.getIntExtra(AddAddressActivity.EXTRA_ICON, target.getIconIndex()));
         store.save(addresses);
         adapter.notifyItemChanged(index);
+        applyColumnWidth();
         toast("已保存修改");
     }
 
@@ -420,6 +451,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (added > 0) {
             adapter.notifyItemRangeInserted(start, added);
         }
+        applyColumnWidth();
         updateEmpty();
         if (replace) {
             toast("已覆盖导入 " + incoming.size() + " 条地址");
@@ -571,9 +603,9 @@ public class MainActivity extends AppCompatActivity {
      * 统一浮层：圆角磨砂玻璃底 + 竖排纯文字项。走 Activity 内覆盖层而不是系统 PopupMenu，
      * 这样才能自定义圆角、位置与动效，且不会破坏沉浸式导航栏。
      *
-     * @param fromBottomBar true = 贴在右下「设置」按钮正上方；false = 右侧垂直居中偏下（长按列表项）
+     * @param fromTopBar true = 贴在右上「设置」按钮正下方；false = 右侧垂直居中偏下（长按列表项）
      */
-    private void showPopover(String[] labels, boolean fromBottomBar, OnPopoverPick onPick) {
+    private void showPopover(String[] labels, boolean fromTopBar, OnPopoverPick onPick) {
         ensureSheet();
         if (sheetBody == null) {
             return;
@@ -585,15 +617,16 @@ public class MainActivity extends AppCompatActivity {
             final int which = i;
             TextView row = new TextView(this);
             row.setText(labels[i]);
-            row.setTextSize(19);
+            // 行高/间距/字号与地址卡片一致（52dp / 6dp / 17sp），风格统一
+            row.setTextSize(17);
             row.setGravity(Gravity.CENTER);
             row.setSingleLine(true);
             row.setPadding(dp(18), 0, dp(18), 0);
             row.setBackgroundResource(R.drawable.bg_popover_row);
             row.setTextColor("删除".equals(labels[i]) ? 0xFFC04545 : 0xFF1C1C1A);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, dp(60));
-            lp.topMargin = i == 0 ? 0 : dp(8);
+                    LinearLayout.LayoutParams.MATCH_PARENT, dp(52));
+            lp.topMargin = i == 0 ? 0 : dp(6);
             row.setLayoutParams(lp);
             row.setOnClickListener(v -> {
                 hideSheet();
@@ -603,13 +636,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         FrameLayout.LayoutParams flp = (FrameLayout.LayoutParams) sheetBody.getLayoutParams();
-        if (fromBottomBar) {
-            // 右下「设置」正上方：右对齐、距父容器底部 = 按钮底边到父底部 + 8dp
-            View bar = findViewById(R.id.bottomBar);
-            int parentH = ((View) bar.getParent()).getHeight();
-            flp.gravity = Gravity.BOTTOM | Gravity.END;
-            flp.topMargin = 0;
-            flp.bottomMargin = parentH - bar.getTop() + dp(8);
+        if (fromTopBar) {
+            // 右上「设置」正下方：右对齐，顶部距按钮底边 8dp
+            View bar = findViewById(R.id.topBar);
+            flp.gravity = Gravity.TOP | Gravity.END;
+            flp.topMargin = bar.getBottom() + dp(8);
+            flp.bottomMargin = 0;
             // 显式写 start/end：supportsRtl 下 marginEnd 会覆盖物理 rightMargin，
             // sheet_actions.xml 自带 marginEnd=24dp，这里必须覆盖成 16dp 并清掉 start。
             flp.setMarginStart(0);
@@ -721,6 +753,7 @@ public class MainActivity extends AppCompatActivity {
                     addresses.remove(index);
                     store.save(addresses);
                     adapter.notifyItemRemoved(index);
+                    applyColumnWidth();
                     updateEmpty();
                 })
                 .setNegativeButton("取消", null)
@@ -732,6 +765,40 @@ public class MainActivity extends AppCompatActivity {
     private int dp(int value) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
                 value, getResources().getDisplayMetrics());
+    }
+
+    /**
+     * 地址列宽 = 最长备注的文字宽度 + 卡片左右内边距，再夹在 [最小 148dp, 屏宽-32dp] 区间。
+     * 列在屏幕中居中，按钮条固定在右上角、宽度独立。
+     * 新增/编辑/删除/导入后都要重算，列宽始终跟随最长的一条。
+     */
+    private void applyColumnWidth() {
+        if (listColumn == null) {
+            return;
+        }
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,
+                17, getResources().getDisplayMetrics()));
+        paint.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+        float widest = 0;
+        for (Address a : addresses) {
+            String name = a.getName();
+            if (name != null) {
+                widest = Math.max(widest, paint.measureText(name));
+            }
+        }
+        // 卡片 paddingStart 16 + paddingEnd 14 = 30dp，再加几 dp 富余
+        int textPx = (int) Math.ceil(widest);
+        int wanted = textPx + dp(36);
+        int minW = dp(148);
+        int maxW = getResources().getDisplayMetrics().widthPixels - dp(32);
+        int width = Math.max(minW, Math.min(wanted, maxW));
+
+        ViewGroup.LayoutParams lp = listColumn.getLayoutParams();
+        if (lp.width != width) {
+            lp.width = width;
+            listColumn.setLayoutParams(lp);
+        }
     }
 
     private void updateEmpty() {

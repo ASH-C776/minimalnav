@@ -7,6 +7,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+import android.util.TypedValue;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -26,6 +27,14 @@ public class AddressAdapter extends RecyclerView.Adapter<AddressAdapter.ViewHold
 
     /** 所有行共用一个插值器实例，避免每次触摸都 new 一个对象。 */
     private static final DecelerateInterpolator EASE = new DecelerateInterpolator();
+
+    /** 首屏逐行入场：只播一次，滚动/刷新/聚焦都不重播。 */
+    private static final int ENTER_DELAY_MS = 60;
+    private static final int ENTER_DURATION_MS = 240;
+    private static final float ENTER_FROM_Y_DP = 14f;
+    private static final float ENTER_FROM_SCALE = 0.96f;
+    private boolean enterAnimationPending = false;
+    private boolean enterAnimationPlayed = false;
 
     public interface OnAddressClickListener {
         void onClick(Address address);
@@ -55,6 +64,48 @@ public class AddressAdapter extends RecyclerView.Adapter<AddressAdapter.ViewHold
         this.list = list;
         this.clickListener = clickListener;
         this.longClickListener = longClickListener;
+    }
+
+    /**
+     * 首屏入场动画。由 MainActivity 在首次绑定前调用，标记接下来这一批 item 需要先隐藏。
+     * 只在真正首次显示时播一次；滚动复用、聚焦刷新、数据变更都不会重播。
+     */
+    void prepareEnterAnimation() {
+        if (!enterAnimationPlayed) {
+            enterAnimationPending = true;
+        }
+    }
+
+    /**
+     * 从 last（拇指旁）往 first 依次弹出：位置越靠后，startDelay 越小。
+     * 用 ViewPropertyAnimator，走 RenderThread，不阻塞主线程，也不影响首帧上报。
+     */
+    void playEnterAnimation(RecyclerView recyclerView) {
+        if (!enterAnimationPending || enterAnimationPlayed) {
+            return;
+        }
+        enterAnimationPending = false;
+        enterAnimationPlayed = true;
+        int last = getItemCount() - 1;
+        // 条目多时压缩间隔：总错峰封顶 600ms，避免几十条时最后一条等好几秒
+        long step = last > 10 ? 600L / last : ENTER_DELAY_MS;
+        for (int i = 0; i < recyclerView.getChildCount(); i++) {
+            View child = recyclerView.getChildAt(i);
+            int pos = recyclerView.getChildAdapterPosition(child);
+            if (pos == RecyclerView.NO_POSITION) {
+                continue;
+            }
+            long delay = (long) (last - pos) * step;
+            child.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setStartDelay(delay)
+                    .setDuration(ENTER_DURATION_MS)
+                    .setInterpolator(EASE)
+                    .start();
+        }
     }
 
     /**
@@ -157,11 +208,23 @@ public class AddressAdapter extends RecyclerView.Adapter<AddressAdapter.ViewHold
         item.animate().cancel();
         item.setScaleX(1f);
         item.setScaleY(1f);
+        item.setTranslationY(0f);
         if (focused) {
             item.animate().scaleX(FOCUS_SCALE).scaleY(FOCUS_SCALE)
                     .setDuration(220)
                     .setInterpolator(EASE)
                     .start();
+        }
+
+        // 首屏这一批：先藏到起点（透明+下移+缩小），等布局完成后由 playEnterAnimation 逐条弹出。
+        // 只作用于尚未播放过的首次绑定；滚动复用/刷新时 enterAnimationPending 已为 false。
+        if (enterAnimationPending) {
+            item.animate().cancel();
+            item.setAlpha(0f);
+            item.setTranslationY(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+                    ENTER_FROM_Y_DP, holder.itemView.getResources().getDisplayMetrics()));
+            item.setScaleX(ENTER_FROM_SCALE);
+            item.setScaleY(ENTER_FROM_SCALE);
         }
     }
 
