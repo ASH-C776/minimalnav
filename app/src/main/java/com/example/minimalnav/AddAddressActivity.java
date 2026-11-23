@@ -38,6 +38,11 @@ public class AddAddressActivity extends AppCompatActivity {
     public static final String EXTRA_POI = "poiId";
     public static final String EXTRA_COLOR = "colorIndex";
     public static final String EXTRA_ICON = "iconIndex";
+    /**
+     * 编辑模式：传入被编辑条目的下标，保存后原样带回，主页据此原地替换。
+     * 不带这个 extra（或为负数）就是新增。
+     */
+    public static final String EXTRA_POSITION = "position";
 
     private EditText etName;
     private EditText etCoord;
@@ -47,6 +52,8 @@ public class AddAddressActivity extends AppCompatActivity {
     private final ImageView[] iconViews = new ImageView[6];
     private int selectedColor;
     private int selectedIcon;
+    /** >= 0 表示在编辑已有条目；-1 表示新增。 */
+    private int editPosition = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +76,16 @@ public class AddAddressActivity extends AppCompatActivity {
         etName = findViewById(R.id.etName);
         etCoord = findViewById(R.id.etCoord);
         tvCoordEcho = findViewById(R.id.tvCoordEcho);
+
+        // 编辑模式与新增共用这一个页面：把原值预填进来，标题和按钮换成「编辑」的说法
+        editPosition = getIntent().getIntExtra(EXTRA_POSITION, -1);
+        if (isEditing()) {
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("编辑地址");
+            }
+            ((TextView) findViewById(R.id.btnSave)).setText("保存修改");
+            prefillFromIntent();
+        }
 
         buildPickers();
 
@@ -93,7 +110,33 @@ public class AddAddressActivity extends AppCompatActivity {
         etCoord.setOnFocusChangeListener((v, hasFocus) ->
                 etCoord.setHint(hasFocus ? "" : coordHint));
 
+        // 预填的坐标是直接 setText 进去的，监听器挂上之前不会触发回显，这里补一次
+        if (isEditing() && !etCoord.getText().toString().trim().isEmpty()) {
+            updateCoordEcho();
+        }
+
         findViewById(R.id.btnSave).setOnClickListener(v -> saveAndFinish());
+    }
+
+    private boolean isEditing() {
+        return editPosition >= 0;
+    }
+
+    /** 把主页传来的原值填进表单：坐标按「经度,纬度」还原成可粘贴的样子。 */
+    private void prefillFromIntent() {
+        Intent intent = getIntent();
+        etName.setText(intent.getStringExtra(EXTRA_NAME));
+        double lat = intent.getDoubleExtra(EXTRA_LAT, Double.NaN);
+        double lon = intent.getDoubleExtra(EXTRA_LON, Double.NaN);
+        if (!Double.isNaN(lat) && !Double.isNaN(lon)) {
+            etCoord.setText(String.format(Locale.US, "%.6f,%.6f", lon, lat));
+        }
+        selectedColor = clampIndex(intent.getIntExtra(EXTRA_COLOR, 0));
+        selectedIcon = clampIndex(intent.getIntExtra(EXTRA_ICON, 0));
+    }
+
+    private static int clampIndex(int value) {
+        return value < 0 || value > 5 ? 0 : value;
     }
 
     @Override
@@ -125,6 +168,7 @@ public class AddAddressActivity extends AppCompatActivity {
         result.putExtra(EXTRA_POI, "");
         result.putExtra(EXTRA_COLOR, selectedColor);
         result.putExtra(EXTRA_ICON, selectedIcon);
+        result.putExtra(EXTRA_POSITION, editPosition);
         setResult(RESULT_OK, result);
         finish();
     }

@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_ADD = 2001;
     private static final int REQ_EXPORT = 2002;
     private static final int REQ_IMPORT = 2003;
+    private static final int REQ_EDIT = 2004;
     /** 开机自检延迟：3 秒后再联网，不和首屏抢资源。 */
     private static final long UPDATE_CHECK_DELAY_MS = 3000;
 
@@ -173,6 +174,11 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        if (requestCode == REQ_EDIT) {
+            applyEdit(data);
+            return;
+        }
+
         if (data.getData() == null) {
             return;
         }
@@ -181,6 +187,47 @@ public class MainActivity extends AppCompatActivity {
         } else if (requestCode == REQ_IMPORT) {
             importFrom(data.getData());
         }
+    }
+
+    /** 打开与「添加地址」同一个页面，只是把原值预填进去；保存后回到这里原地替换。 */
+    private void editAddress(Address address) {
+        int index = addresses.indexOf(address);
+        if (index < 0) {
+            return;
+        }
+        Intent intent = new Intent(this, AddAddressActivity.class);
+        intent.putExtra(AddAddressActivity.EXTRA_POSITION, index);
+        intent.putExtra(AddAddressActivity.EXTRA_NAME, address.getName());
+        intent.putExtra(AddAddressActivity.EXTRA_LAT, address.getLat());
+        intent.putExtra(AddAddressActivity.EXTRA_LON, address.getLon());
+        intent.putExtra(AddAddressActivity.EXTRA_COLOR, address.getColorIndex());
+        intent.putExtra(AddAddressActivity.EXTRA_ICON, address.getIconIndex());
+        startActivityForResult(intent, REQ_EDIT);
+    }
+
+    /**
+     * 编辑结果落到原条目上：名称 / 坐标 / 颜色 / 图标整体替换。
+     * poiId 保留——重新填了坐标的旧条目，跳转时仍可把 id 一起带给高德。
+     */
+    private void applyEdit(Intent data) {
+        int index = data.getIntExtra(AddAddressActivity.EXTRA_POSITION, -1);
+        if (index < 0 || index >= addresses.size()) {
+            return;
+        }
+        Address target = addresses.get(index);
+        double lat = data.getDoubleExtra(AddAddressActivity.EXTRA_LAT, Double.NaN);
+        double lon = data.getDoubleExtra(AddAddressActivity.EXTRA_LON, Double.NaN);
+        if (Double.isNaN(lat) || Double.isNaN(lon)) {
+            return;
+        }
+        target.setName(data.getStringExtra(AddAddressActivity.EXTRA_NAME));
+        target.setLat(lat);
+        target.setLon(lon);
+        target.setColorIndex(data.getIntExtra(AddAddressActivity.EXTRA_COLOR, target.getColorIndex()));
+        target.setIconIndex(data.getIntExtra(AddAddressActivity.EXTRA_ICON, target.getIconIndex()));
+        store.save(addresses);
+        adapter.notifyItemChanged(index);
+        toast("已保存修改");
     }
 
     /**
@@ -426,8 +473,9 @@ public class MainActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("这条地址缺少坐标")
                 .setMessage("「" + address.getName() + "」只有 POI ID，高德无法直接导航。\n"
-                        + "长按这条地址删除，再用坐标重新添加即可。")
-                .setPositiveButton("知道了", null)
+                        + "补上坐标后就能一键直达。")
+                .setPositiveButton("去编辑", (dialog, which) -> editAddress(address))
+                .setNegativeButton("知道了", null)
                 .show();
     }
 
@@ -511,7 +559,8 @@ public class MainActivity extends AppCompatActivity {
     private void showActionSheet(final Address address) {
         // 聚焦态：被操作的卡片放大 + 绿色描边，其余行淡出，明确当前操作对象
         adapter.setFocusPosition(addresses.indexOf(address));
-        showPopover(new String[]{"路线", "上移", "删除"}, false, which -> handleAction(address, which));
+        showPopover(new String[]{"路线", "编辑", "上移", "删除"}, false,
+                which -> handleAction(address, which));
     }
 
     /**
@@ -622,9 +671,12 @@ public class MainActivity extends AppCompatActivity {
                 navigate(address, false);   // 路线规划
                 break;
             case 1:
-                moveUp(address);
+                editAddress(address);
                 break;
             case 2:
+                moveUp(address);
+                break;
+            case 3:
                 confirmDelete(address);
                 break;
             default:
