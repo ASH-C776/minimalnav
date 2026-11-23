@@ -581,14 +581,14 @@ public class MainActivity extends AppCompatActivity {
             final int which = i;
             TextView row = new TextView(this);
             row.setText(labels[i]);
-            row.setTextSize(16);
+            row.setTextSize(19);
             row.setGravity(Gravity.CENTER);
             row.setSingleLine(true);
             row.setPadding(dp(18), 0, dp(18), 0);
             row.setBackgroundResource(R.drawable.bg_popover_row);
             row.setTextColor("删除".equals(labels[i]) ? 0xFFC04545 : 0xFF1C1C1A);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, dp(50));
+                    LinearLayout.LayoutParams.MATCH_PARENT, dp(60));
             lp.topMargin = i == 0 ? 0 : dp(8);
             row.setLayoutParams(lp);
             row.setOnClickListener(v -> {

@@ -18,11 +18,11 @@
 
     <ImageView
         android:id="@+id/ivIcon"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
         android:layout_marginEnd="12dp"
         android:contentDescription="@null"
-        android:src="@drawable/ic_home" />
+        android:src="@drawable/ic_community" />
 
     <TextView
         android:id="@+id/tvName"
@@ -32,7 +32,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="#1C1C1A"
-        android:textSize="15sp"
+        android:textSize="17sp"
         android:textStyle="bold" />
 
 </LinearLayout>
