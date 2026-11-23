@@ -12,8 +12,8 @@ android {
         targetSdk 36
         // 版本号规则：versionName 三段数字，versionCode = major*10000 + minor*100 + patch。
         // 客户端 UpdateInfo.parseVersionCode 用的是同一个公式，两边必须一字不差，否则会误判降级。
-        versionCode 10003
-        versionName '1.0.3'
+        versionCode 10004
+        versionName '1.0.4'
     }
 
     compileOptions {
